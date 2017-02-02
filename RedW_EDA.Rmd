@@ -1,0 +1,148 @@
+---
+title: "Red Wine Quality Prediction"
+author: "Wen Yang"
+date: "February 1, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+TThis study is about performing exploratory data analysis on Red Wine Quality data. The dataset includes 11 physicochemical attribute and 1 sensory evaluation on wine quality provided by wine experts. For more details on the original paper see <http://rmarkdown.rstudio.com>.
+
+The dataset is explored mainly by descriptive statistics and analytic graphics by examining the association patterns between variables. The results are further used to select attributes for predictive regression model.
+
+## Univariate Plot Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Import libraries
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(corrplot)
+library(reshape2)
+```
+
+First step is to load the Red Wine csv file and preview our dataset.
+```{r echo=FALSE}
+dta <- read.csv('wineQualityReds.csv')
+head(dta)
+```
+Also check the bottom of the dataset to make sure no comment lines.
+```{r echo=FALSE}
+tail(dta)
+```
+
+Second step is to check the overall structure
+```{r echo=FALSE}
+str(dta)
+```
+Observations:
+1. All attributes are numerical type. 
+2. X is index, which we don't need to consider further analysis
+3. Although quality data is integer, it can also be viewed as categorical we might need to convert it to categorical data either based on the interger or based on selected range. 
+
+### The balance between sweetness and acidity
+
+
+```{r echo=FALSE}
+sweetness <- melt(dta[, 2:5])
+ggplot(sweetness, aes(x=variable, y=value, fill=variable)) + geom_boxplot() 
+
+```
+
+
+
+### Box Plots on Sulpate and Sulphite Attributes
+```{r}
+
+
+g1 <- ggplot(dta, aes(x=sulphates)) + geom_histogram(aes(y=..density..), colour="black", fill="white") + geom_density(alpha=.2, fill="#FF6666")
+
+g2 <- ggplot(dta, aes(x=free.sulfur.dioxide)) + geom_histogram(aes(y=..density..), colour="black", fill="white") + geom_density(alpha=.2, fill="#FF6666")
+
+g3 <- ggplot(dta, aes(x=total.sulfur.dioxide)) + geom_histogram(aes(y=..density..), colour="black", fill="white") + geom_density(alpha=.2, fill="#FF6666")
+
+grid.arrange(g1,g2,g3,ncol=3)
+
+
+```
+
+
+```{r}
+# g1 <- ggplot(dta, aes(x=alcohol)) + geom_histogram(colour="black", fill="white") + 
+  geom_vline(data=dta, aes(xintercept= mean(dta$alcohol),linetype="dashed", colour = "red"))
+
+ggplot(dta, aes(x=density)) + geom_histogram(colour="black", fill="white") + 
+  geom_vline(data=dta, aes(xintercept= mean(dta$density), linetype=2, size=2, colour = "red"))
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+ggplot(dta, aes(x=alcohol)) + geom_histogram(colour="black", fill="white") + 
+  geom_vline(data=dta, aes(xintercept= mean(dta$alcohol),linetype="dashed", size=1, colour = "red")
+
+#g2 <- ggplot(dta, aes(x=chlorides)) + geom_histogram(colour="black", fill="white") + geom_vline(aes(xintercept=chlorides.mean,linetype="dashed", size=1, colour = "red"))
+
+#g3 <- ggplot(dta, aes(x=density)) + geom_histogram(colour="black", fill="white") + geom_vline(aes(xintercept=density.mean),linetype="dashed", size=1, colour = "red"))
+
+#g4 <- ggplot(dta, aes(x=pH)) + geom_histogram(colour="black", fill="white") + geom_vline(aes(xintercept=pH.mean),linetype="dashed", size=1, colour = "red")
+
+#grid.arrange(g1,g2,g3,g4,ncol=2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+
+
+
+
+
+
+
+
+
+
+Statistical Summary for sweetness related attributes. 
+```{r echo=FALSE}
+summary(dta[,2:5])
+```
+
+
+## Reference
+1. P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. Modeling wine preferences by data mining from physicochemical properties. In Decision Support Systems, Elsevier, 47(4):547-553, 2009.
+
+2. Correlation matrix: An R function to do all you need (http://www.sthda.com/english/wiki/correlation-matrix-an-r-function-to-do-all-you-need#at_pco=smlre-1.0&at_si=589272c605773292&at_ab=per-2&at_pos=3&at_tot=4)
+
+
