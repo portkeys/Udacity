@@ -1,0 +1,241 @@
+---
+title: "Red Wine Quality Prediction"
+author: "Wen Yang"
+date: "February 1, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This study is about performing exploratory data analysis on Red Wine Quality data. The dataset includes 11 physicochemical attribute and 1 sensory evaluation on wine quality provided by wine experts. For more details on the original paper see <http://rmarkdown.rstudio.com>.
+
+The dataset is explored mainly by descriptive statistics and analytic graphics by examining the association patterns between variables. The results are further used to select attributes for predictive regression model.
+
+## Univariate Plot Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Import libraries
+library(ggplot2)
+#library(GGally) # for pair plot
+# library(memisc) # for summarize regression
+library(MASS) # for various functions
+library(dplyr)
+library(gridExtra)
+library(corrplot)
+library(PerformanceAnalytics)
+library(reshape2)
+library(xtable)
+```
+
+First step is to load the Red Wine csv file and preview our dataset.
+```{r echo=FALSE}
+dta <- read.csv('wineQualityReds.csv')
+head(dta)
+```
+
+Second step is to check the overall structure
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+str(dta)
+```
+Observations:
+1. All attributes are numerical type. 
+2. X is index, which we don't need to consider further analysis
+3. Although quality data is integer, it can also be viewed as categorical we might need to convert it to categorical data either based on the interger or based on selected range. 
+
+### Assign Quality Level
+
+
+```{r echo=FALSE}
+dta$level[dta$quality>=7]<- "High"
+dta$level[dta$quality>=5 & dta$quality<7]<- "Medium"
+dta$level[dta$quality<5]<- "Low"
+dta$level<-factor(dta$level,levels=c("Low","Medium","High"))
+```
+
+
+
+
+
+
+### Final Plot 1
+```{r echo=FALSE, message=FALSE, warning=FALSE }
+
+
+colgroup1 <- c(2,12,14) # all increasing
+colgroup2 <- c(4,11,14) # acidity +increasing
+colgroup3 <- c(5,14) # increasing
+
+colgroup4 <- c(3,14) # decreasing
+colgroup5 <- c(10,14)
+colgroup6 <- c(6,14) # decreasing, but with outlier need to set ylim
+
+longroup1 <- melt(dta[,colgroup1], id.vars="level")
+longroup2 <- melt(dta[,colgroup2], id.vars="level")
+longroup3 <- melt(dta[,colgroup3], id.vars="level")
+longroup4 <- melt(dta[,colgroup4], id.vars="level")
+longroup5 <- melt(dta[,colgroup5], id.vars="level")
+longroup6 <- melt(dta[,colgroup6], id.vars="level")
+
+g1<-ggplot(longroup1, aes(x=variable, y=value, fill=level)) + geom_boxplot() + scale_fill_brewer(palette = "RdPu", guide=FALSE) 
+g2<-ggplot(longroup2, aes(x=variable, y=value, fill=level)) + geom_boxplot() + scale_fill_brewer(palette = "RdPu",guide=FALSE)
+g3<-ggplot(longroup3, aes(x=variable, y=value, fill=level)) + geom_boxplot() + scale_fill_brewer(palette = "RdPu") + coord_cartesian(ylim=c(0,4))
+
+g4<-ggplot(longroup4, aes(x=variable, y=value, fill=level)) + geom_boxplot() + scale_fill_brewer(guide=FALSE)
+g5<-ggplot(longroup5, aes(x=variable, y=value, fill=level)) + geom_boxplot() + scale_fill_brewer(guide=FALSE)
+g6<-ggplot(longroup6, aes(x=variable, y=value, fill=level)) + geom_boxplot() + scale_fill_brewer() + coord_cartesian(ylim=c(0,0.15))
+
+grid.arrange(g1,g2,g3,g4,g5,g6,ncol=3)
+
+
+```
+### Final Plot 2
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Unclear Group
+colgroup1 <- c(7,14) # sulfur, unclear
+colgroup2 <- c(8,14) # sulfur, unclear
+colgroup3 <- c(9,14) # unclear
+
+longroup1 <- melt(dta[,colgroup1], id.vars="level")
+longroup2 <- melt(dta[,colgroup2], id.vars="level")
+longroup3 <- melt(dta[,colgroup3], id.vars="level")
+
+g1<-ggplot(longroup1, aes(x=variable, y=value, fill=level)) + geom_boxplot() + scale_fill_brewer(palette = "Purples") + coord_cartesian(ylim=c(0,40))
+g2<-ggplot(longroup2, aes(x=variable, y=value, fill=level)) + geom_boxplot() + scale_fill_brewer(palette = "Purples") + coord_cartesian(ylim=c(0,100))
+g3<-ggplot(longroup3, aes(x=variable, y=value, fill=level)) + geom_boxplot() + scale_fill_brewer(palette = "Purples") + coord_cartesian(ylim=c(0.992,1))
+
+grid.arrange(g1,g2,g3,ncol=3)
+
+
+
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+colnames(dta[2])
+```
+
+
+
+
+### Conditional Means
+
+
+```{r}
+# Write a function to compute median and outliers given column number dataset
+
+col_line <- function(col){
+valmedian <- median(dta[,col])
+valiqr<-IQR(dta[,col])
+val_q1<-valmedian - valiqr
+val_q3<-valmedian + valiqr
+val_outlier<-c(val_q1-1.5*valiqr,val_q3+1.5*valiqr)
+
+val_lines <-c(val_outlier,valmedian)
+return(val_lines)
+}
+
+
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plots <- list()
+
+
+for(i in 2:13){
+  plots[[i-1]] <- ggplot(dta, aes_string(x=dta[,i])) + geom_histogram() + 
+  geom_vline(xintercept=col_line(i), linetype="longdash",colour="red") +xlab(colnames(dta[i]))
+}
+
+grid.arrange(grobs=plots,ncol=3)
+
+```
+
+
+
+
+
+
+
+### Step 1a: Univariate Histogram Section
+```{r echo=FALSE,message=FALSE, warning=FALSE}
+
+
+g1 <- ggplot(dta, aes(x=dta[,2])) + geom_histogram(aes(y=..density..), colour="black", fill="white") + geom_density(alpha=.2, fill="#FF6666") + geom_vline(xintercept=col_line(2), linetype="longdash",colour="red") +xlab(colnames(dta[2]))
+
+g2 <- ggplot(dta, aes(x=dta[,3])) + geom_histogram(aes(y=..density..), colour="black", fill="white") + geom_density(alpha=.2, fill="#FF6666") + geom_vline(xintercept=col_line(3), linetype="longdash",colour="red") +xlab(colnames(dta[3]))
+
+g3 <- ggplot(dta, aes(x=dta[,4])) + geom_histogram(aes(y=..density..), colour="black", fill="white") + geom_density(alpha=.2, fill="#FF6666") + geom_vline(xintercept=col_line(4), linetype="longdash",colour="red") +xlab(colnames(dta[4]))
+
+g4 <- ggplot(dta, aes(x=dta[,5])) + geom_histogram(aes(y=..density..), colour="black", fill="white") + geom_density(alpha=.2, fill="#FF6666") + geom_vline(xintercept=col_line(5), linetype="longdash",colour="red") +xlab(colnames(dta[5]))
+
+g5 <- ggplot(dta, aes(x=dta[,6])) + geom_histogram(aes(y=..density..), colour="black", fill="white") + geom_density(alpha=.2, fill="#FF6666") + geom_vline(xintercept=col_line(6), linetype="longdash",colour="red") +xlab(colnames(dta[6]))
+
+g4 <- ggplot(dta, aes(x=dta[,5])) + geom_histogram(aes(y=..density..), colour="black", fill="white") + geom_density(alpha=.2, fill="#FF6666") + geom_vline(xintercept=col_line(5), linetype="longdash",colour="red") +xlab(colnames(dta[5]))
+
+
+grid.arrange(g1,g2,g3,g4,ncol=2)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+source("http://www.sthda.com/upload/rquery_cormat.r")
+rquery.cormat(dta[,2:13])
+
+```
+
+### Performance Analytics
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+mycol <- c(10:12,13)
+chart.Correlation(dta[,mycol])
+```
+
+## Correlation Table
+
+## Principal Component Analysis
+* Correlation indicates that there is redundancy in the data. Using PCA to identify the key features explaining most of the variance in quality output.
+* Process (Step by Step)
+
+
+## Reference
+1. P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. Modeling wine preferences by data mining from physicochemical properties. In Decision Support Systems, Elsevier, 47(4):547-553, 2009.
+
+2. Correlation matrix: An R function to do all you need (http://www.sthda.com/english/wiki/correlation-matrix-an-r-function-to-do-all-you-need#at_pco=smlre-1.0&at_si=589272c605773292&at_ab=per-2&at_pos=3&at_tot=4)
+
+
